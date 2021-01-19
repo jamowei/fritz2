@@ -2,6 +2,7 @@ package dev.fritz2.components
 
 import dev.fritz2.dom.WithEvents
 import dev.fritz2.dom.html.Div
+import dev.fritz2.dom.html.Input
 import dev.fritz2.dom.html.Label
 import dev.fritz2.dom.html.RenderContext
 import dev.fritz2.styling.StyleClass
@@ -49,7 +50,7 @@ import org.w3c.dom.HTMLInputElement
  * ```
  */
 @ComponentMarker
-class RadioComponent {
+class RadioComponent : ElementProperties<Input> by Element(), InputFormProperties by InputForm() {
     companion object {
         val radioInputStaticCss = staticStyle(
             "radioInput",
@@ -79,6 +80,22 @@ class RadioComponent {
             }
             """
         )
+
+        val radioLabelStaticCss = staticStyle(
+            "radiolabel",
+            """
+            display: block;
+            position: relative;
+            &::before {
+                content: '';
+                outline: none;
+                position: relative;
+                display: inline-block;
+                vertical-align: middle;
+                box-shadow: 0 0 1px ${Theme().colors.dark} inset;
+            }
+            """
+        )
     }
 
     var size: RadioSizes.() -> Style<BasicParams> = { Theme().radio.sizes.normal }
@@ -97,14 +114,17 @@ class RadioComponent {
             +value
         }
     }
+
     fun label(value: Flow<String>) {
         label = {
             value.asText()
         }
     }
+
     fun label(value: (Div.() -> Unit)) {
         label = value
     }
+
     var labelStyle: Style<BasicParams> = { Theme().radio.label() }
     fun labelStyle(value: () -> Style<BasicParams>) {
         labelStyle = value()
@@ -121,21 +141,17 @@ class RadioComponent {
     }
 
     var selected: Flow<Boolean> = flowOf(false) // @input
-    fun selected(value: Flow<Boolean>) {
-        selected = value
-    }
-
-    var disabled: Flow<Boolean> = flowOf(false) // @input
-    fun disabled(value: Flow<Boolean>) {
-        disabled = value
+    fun selected(value: () -> Flow<Boolean>) {
+        selected = value()
     }
 
     var groupName: Flow<String> = flowOf("")
-    fun groupName(value: String) {
-        groupName = flowOf(value)
+    fun groupName(value: () -> String) {
+        groupName = flowOf(value())
     }
-    fun groupName(value: Flow<String>) {
-        groupName = value
+
+    fun groupName(value: () -> Flow<String>) {
+        groupName = value()
     }
 
 
@@ -156,7 +172,7 @@ class RadioComponent {
  * radio {
  *      label("with extra cheese") // set the label
  *      size { normal } // choose a predefined size
- *      selected(cheeseStore.data) // link a [Flow<Boolean>] in order to visualize the checked state
+ *      selected { cheeseStore.data } // link a [Flow<Boolean>] in order to visualize the checked state
  *      events { // open inner context with all DOM-element events
  *          changes.states() handledBy cheeseStore.update // connect the changes event with the state store
  *      }
@@ -182,7 +198,7 @@ fun RenderContext.radio(
     val inputId = id?.let { "$it-input" }
     val alternativeGroupname = id?.let { "$it-groupName" }
     val inputName = component.groupName.map {
-        if(it.isEmpty()) {
+        if (it.isEmpty()) {
             alternativeGroupname ?: ""
         } else {
             it
@@ -203,11 +219,15 @@ fun RenderContext.radio(
             baseClass = RadioComponent.radioInputStaticCss,
             prefix = prefix,
             id = inputId
-        ){ Theme().radio.input()
+        ) {
+            Theme().radio.input()
             children("&[checked] + div") {
                 component.selectedStyle()
             }
         }) {
+            component.element?.invoke(this)
+            disabled(component.disabled)
+            readOnly(component.readonly)
             type("radio")
             name(inputName)
             checked(component.selected)
@@ -216,7 +236,7 @@ fun RenderContext.radio(
             component.events?.invoke(this)
         }
 
-        (::div.styled(){
+        (::div.styled() {
             Theme().radio.default()
             styling()
         }) { }
