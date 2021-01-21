@@ -10,6 +10,7 @@ import dev.fritz2.styling.params.Style
 import dev.fritz2.styling.params.styled
 import dev.fritz2.styling.theme.CheckboxSizes
 import dev.fritz2.styling.theme.IconDefinition
+import dev.fritz2.styling.theme.Icons
 import dev.fritz2.styling.theme.Theme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -62,7 +63,7 @@ import kotlinx.coroutines.flow.map
  * }
  * ```
  */
-class CheckboxGroupComponent<T> {
+class CheckboxGroupComponent<T> : InputFormProperties by InputForm() {
     companion object {
         object CheckboxGroupLayouts {
             val column: Style<BasicParams> = {
@@ -78,46 +79,26 @@ class CheckboxGroupComponent<T> {
         }
     }
 
-    var items: Flow<List<T>> = flowOf(emptyList())
-    fun items(value: List<T>) {
-        items = flowOf(value)
-    }
-    fun items(value: () -> Flow<List<T>>) {
-        items = value()
-    }
+    var items = DynamicComponentProperty<List<T>>(flowOf(emptyList()))
+    var icon = ComponentProperty<Icons.() -> IconDefinition> { Theme().icons.check }
 
-    var icon: IconDefinition = Theme().icons.check
-    fun icon(value: () -> IconDefinition) {
-        icon = value()
-    }
-
-    var label: ((item: T)  -> String) =  {it.toString()}
-    fun label (value: (item: T)  -> String) {
+    var label: ((item: T) -> String) = { it.toString() }
+    fun label(value: (item: T) -> String) {
         label = value
-    }
-
-    var disabled: Flow<Boolean> = flowOf(false)
-    fun disabled(value: () -> Flow<Boolean>) {
-        disabled = value()
-    }
-    fun disabled(value:  Boolean) {
-        disabled = flowOf(value)
     }
 
     var direction: Style<BasicParams> = CheckboxGroupLayouts.column
     fun direction(value: CheckboxGroupLayouts.() -> Style<BasicParams>) {
-        direction =  CheckboxGroupLayouts.value()
+        direction = CheckboxGroupLayouts.value()
     }
 
-    var size: CheckboxSizes.() -> Style<BasicParams> = { Theme().checkbox.sizes.normal }
-    fun size(value: CheckboxSizes.() -> Style<BasicParams>) {
-        size = value
-    }
+    var size = ComponentProperty<CheckboxSizes.() -> Style<BasicParams>> { Theme().checkbox.sizes.normal }
 
     var itemStyle: Style<BasicParams> = { Theme().checkbox.default() }
     fun itemStyle(value: () -> Style<BasicParams>) {
         itemStyle = value()
     }
+
     var labelStyle: Style<BasicParams> = { Theme().checkbox.label() }
     fun labelStyle(value: () -> Style<BasicParams>) {
         labelStyle = value()
@@ -128,7 +109,6 @@ class CheckboxGroupComponent<T> {
         checkedStyle = value()
     }
 }
-
 
 
 /**
@@ -173,7 +153,7 @@ class CheckboxGroupComponent<T> {
  * @param prefix the prefix for the generated CSS class resulting in the form ``$prefix-$hash``
  * @param build a lambda expression for setting up the component itself. Details in [CheckboxGroupComponent]
  */
-fun <T>RenderContext.checkboxGroup(
+fun <T> RenderContext.checkboxGroup(
     styling: BasicParams.() -> Unit = {},
     store: Store<List<T>>,
     baseClass: StyleClass? = null,
@@ -184,7 +164,7 @@ fun <T>RenderContext.checkboxGroup(
     val component = CheckboxGroupComponent<T>().apply(build)
 
     val toggle = store.handle<T> { list, item ->
-        if( list.contains(item) ) {
+        if (list.contains(item)) {
             list - item
         } else {
             list + item
@@ -196,18 +176,18 @@ fun <T>RenderContext.checkboxGroup(
     (::div.styled(styling, baseClass, id, prefix) {
         component.direction()
     }) {
-        component.items.renderEach { item ->
+        component.items.values.renderEach { item ->
             val checkedFlow = store.data.map { it.contains(item) }.distinctUntilChanged()
-            checkbox(styling = component.itemStyle, id = grpId + "-grp-item-" + uniqueId()){
-                size { component.size.invoke(Theme().checkbox.sizes) }
-                icon { component.icon }
+            checkbox(styling = component.itemStyle, id = grpId + "-grp-item-" + uniqueId()) {
+                size { component.size.value.invoke(Theme().checkbox.sizes) }
+                icon { component.icon.value(Theme().icons) }
                 labelStyle { component.labelStyle }
                 checkedStyle { component.checkedStyle }
                 label(component.label(item))
-                checked { checkedFlow }
-                disabled (component.disabled )
+                checked(checkedFlow)
+                disabled(component.disabled.values)
                 events {
-                   changes.states().map{ item } handledBy toggle
+                    changes.states().map { item } handledBy toggle
                 }
             }
         }

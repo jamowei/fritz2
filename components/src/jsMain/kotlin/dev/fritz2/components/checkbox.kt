@@ -13,9 +13,11 @@ import dev.fritz2.styling.params.styled
 import dev.fritz2.styling.staticStyle
 import dev.fritz2.styling.theme.CheckboxSizes
 import dev.fritz2.styling.theme.IconDefinition
+import dev.fritz2.styling.theme.Icons
 import dev.fritz2.styling.theme.Theme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import org.w3c.dom.HTMLButtonElement
 import org.w3c.dom.HTMLInputElement
 
 /**
@@ -52,7 +54,7 @@ import org.w3c.dom.HTMLInputElement
 @ComponentMarker
 class CheckboxComponent : ElementProperties<Input> by Element(), InputFormProperties by InputForm() {
     companion object {
-       val checkboxInputStaticCss = staticStyle(
+        val checkboxInputStaticCss = staticStyle(
             "checkbox",
             """
             position: absolute;
@@ -69,30 +71,29 @@ class CheckboxComponent : ElementProperties<Input> by Element(), InputFormProper
         )
     }
 
-    var size: CheckboxSizes.() -> Style<BasicParams> = { Theme().checkbox.sizes.normal }
-    fun size(value: CheckboxSizes.() -> Style<BasicParams>) {
-        size = value
-    }
+    var size = ComponentProperty<CheckboxSizes.() -> Style<BasicParams>> { Theme().checkbox.sizes.normal }
+    var icon = ComponentProperty<Icons.() -> IconDefinition> { Theme().icons.check }
 
-    var icon: IconDefinition = Theme().icons.check
-    fun icon(value: () -> IconDefinition ) {
-        icon = value()
-    }
+    var label: (RenderContext.() -> Unit)? = null
 
-    var label: (Div.() -> Unit)? = null
     fun label(value: String) {
         label = {
-           +value
+            span { +value }
         }
     }
+
     fun label(value: Flow<String>) {
         label = {
-            value.asText()
+            span { value.asText() }
         }
     }
-    fun label(value: (Div.() -> Unit)) {
+
+    fun label(value: (RenderContext.() -> Unit)) {
         label = value
     }
+
+    var events = ComponentProperty<WithEvents<HTMLInputElement>.() -> Unit> {}
+    var checked = DynamicComponentProperty(flowOf(false))
 
     var labelStyle: Style<BasicParams> = { Theme().checkbox.label() }
     fun labelStyle(value: () -> Style<BasicParams>) {
@@ -102,16 +103,6 @@ class CheckboxComponent : ElementProperties<Input> by Element(), InputFormProper
     var checkedStyle: Style<BasicParams> = { Theme().checkbox.checked() }
     fun checkedStyle(value: () -> Style<BasicParams>) {
         checkedStyle = value()
-    }
-
-    var events: (WithEvents<HTMLInputElement>.() -> Unit)? = null // @input
-    fun events(value: WithEvents<HTMLInputElement>.() -> Unit) {
-        events = value
-    }
-
-    var checked: Flow<Boolean> = flowOf(false) // @input
-    fun checked(value: () -> Flow<Boolean>) {
-        checked = value()
     }
 }
 
@@ -154,12 +145,12 @@ fun RenderContext.checkbox(
     val component = CheckboxComponent().apply(build)
     val inputId = id?.let { "$it-input" }
 
-   return (::label.styled(
+    return (::label.styled(
         baseClass = baseClass,
         id = id,
         prefix = prefix
     ) {
-       component.size.invoke(Theme().checkbox.sizes)()
+        component.size.value.invoke(Theme().checkbox.sizes)()
     }) {
         inputId?.let {
             `for`(inputId)
@@ -168,7 +159,7 @@ fun RenderContext.checkbox(
             baseClass = checkboxInputStaticCss,
             prefix = prefix,
             id = inputId
-        ){
+        ) {
             Theme().checkbox.input()
             children("&[checked] + div") {
                 component.checkedStyle()
@@ -178,18 +169,18 @@ fun RenderContext.checkbox(
             disabled(component.disabled.values)
             readOnly(component.readonly.values)
             type("checkbox")
-            checked(component.checked)
-            component.events?.invoke(this)
+            checked(component.checked.values)
+            component.events.value.invoke(this)
         }
 
-        (::div.styled(){
+        (::div.styled() {
             Theme().checkbox.default()
             styling()
         }) {
             icon({
                 Theme().checkbox.icon()
             }
-            ) { fromTheme { component.icon } }
+            ) { def = component.icon.value(Theme().icons) }
         }
 
         component.label?.let {
