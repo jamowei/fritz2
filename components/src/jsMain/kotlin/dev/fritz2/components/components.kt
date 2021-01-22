@@ -1,8 +1,11 @@
 package dev.fritz2.components
 
+import dev.fritz2.dom.WithEvents
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import org.w3c.dom.Element
+import org.w3c.dom.HTMLInputElement
 
 /**
  * A marker to separate the layers of calls in the type-safe-builder pattern.
@@ -24,6 +27,14 @@ class DynamicComponentProperty<T>(var values: Flow<T>) {
     operator fun invoke(newValues: Flow<T>) {
         values = newValues
     }
+}
+
+interface EventProperties<T : Element> {
+    var events: ComponentProperty<WithEvents<T>.() -> Unit>
+}
+
+class Event<T: Element> : EventProperties<T> {
+    override var events: ComponentProperty<WithEvents<T>.() -> Unit> = ComponentProperty {}
 }
 
 interface ElementProperties<T> {

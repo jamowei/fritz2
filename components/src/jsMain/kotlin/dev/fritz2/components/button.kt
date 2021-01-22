@@ -14,6 +14,7 @@ import dev.fritz2.styling.theme.PushButtonVariants
 import dev.fritz2.styling.theme.Theme
 import kotlinx.coroutines.flow.Flow
 import org.w3c.dom.HTMLButtonElement
+import org.w3c.dom.HTMLTextAreaElement
 import org.w3c.dom.events.MouseEvent
 
 /**
@@ -55,7 +56,10 @@ import org.w3c.dom.events.MouseEvent
  *  ```
  */
 @ComponentMarker
-open class PushButtonComponent : ElementProperties<Button> by Element(), FormProperties by Form() {
+open class PushButtonComponent :
+    EventProperties<HTMLButtonElement> by Event(),
+    ElementProperties<Button> by Element(),
+    FormProperties by Form() {
     companion object {
         val staticCss = staticStyle(
             "button",
@@ -137,8 +141,6 @@ open class PushButtonComponent : ElementProperties<Button> by Element(), FormPro
             left { marginToText }
         }
     }
-
-    var events = ComponentProperty<WithEvents<HTMLButtonElement>.() -> Unit> {}
 
     private fun buildColor(value: ColorProperty): Style<BasicParams> = { css("--main-color: $value;") }
 
@@ -308,7 +310,6 @@ fun RenderContext.pushButton(
  * offer such a handler btw, so for example you can combine such a [clickButton] with a [modal] like this:
  * ```
  * clickButton { text("save") } handledBy modal {
- *      closeButton()
  *      items { p {+"foo"} }
  * }
  * ```

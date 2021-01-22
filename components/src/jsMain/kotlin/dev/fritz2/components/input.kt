@@ -2,6 +2,7 @@ package dev.fritz2.components
 
 
 import dev.fritz2.binding.Store
+import dev.fritz2.dom.WithEvents
 import dev.fritz2.dom.html.Input
 import dev.fritz2.dom.html.RenderContext
 import dev.fritz2.dom.values
@@ -17,6 +18,8 @@ import dev.fritz2.styling.theme.InputFieldVariants
 import dev.fritz2.styling.theme.Theme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import org.w3c.dom.HTMLButtonElement
+import org.w3c.dom.HTMLInputElement
 
 /**
  * This class deals with the _configuration_ of an input element.
@@ -32,7 +35,11 @@ import kotlinx.coroutines.flow.flowOf
  * @see InputFieldStyles
  */
 @ComponentMarker
-open class InputFieldComponent : ElementProperties<Input> by Element(), InputFormProperties by InputForm() {
+open class InputFieldComponent :
+    EventProperties<HTMLInputElement> by Event(),
+    ElementProperties<Input> by Element(),
+    InputFormProperties by InputForm() {
+
     companion object {
 
         val staticCss = staticStyle(
@@ -117,19 +124,25 @@ open class InputFieldComponent : ElementProperties<Input> by Element(), InputFor
  * react to a change refer also to its event's. All that can be achieved via the [InputFieldComponent.element] property!
  *
  * ```
- * inputField(store = dataStore) {
- *      element {
- *          placeholder("Placeholder") // render a placeholder text for empty field
- *      }
+ * inputField(store = dataStore /* inject a store so all user inputs are automatically reflected! */) {
+ *     placeholder("Placeholder") // render a placeholder text for empty field
+ * }
+ *
+ * // all state management can also be done manually if needed:
+ * val someStore = storeOf("")
+ * inputField {
+ *     placeholder("Enter text")
+ *     value(someStore.data) // connect a flow to the component for setting its value
+ *     events {
+ *         changes.values() handledBy someStore.update // connect an handler for emitting the user input made
+ *     }
  * }
  *
  * // apply predefined size and variant
  * inputField(store = dataStore) {
  *      size { small } // render a smaller input
  *      variant { filled } // fill the background with ``light`` color
- *      element {
- *          placeholder("Placeholder") // render a placeholder text for empty field
- *      }
+ *      placeholder("Placeholder") // render a placeholder text for empty field
  * }
  *
  * // Of course you can apply custom styling as well
@@ -141,9 +154,7 @@ open class InputFieldComponent : ElementProperties<Input> by Element(), InputFor
  * },
  * store = dataStore) {
  *      size { small } // render a smaller input
- *      element {
- *          placeholder("Placeholder") // render a placeholder text for empty field
- *      }
+ *      placeholder("Placeholder") // render a placeholder text for empty field
  * }
  * ```
  *
@@ -172,6 +183,7 @@ fun RenderContext.inputField(
         InputFieldComponent.basicInputStyles()
     }) {
         component.element.value.invoke(this)
+        component.events.value.invoke(this)
         disabled(component.disabled.values)
         readOnly(component.readonly.values)
         placeholder(component.placeholder.values)

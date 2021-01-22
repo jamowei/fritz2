@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import org.w3c.dom.HTMLButtonElement
 import org.w3c.dom.HTMLInputElement
+import org.w3c.dom.HTMLTextAreaElement
 
 /**
  * This class combines the _configuration_ and the core styling of a checkbox.
@@ -44,15 +45,22 @@ import org.w3c.dom.HTMLInputElement
  * checkbox {
  *      label("with extra cheese") // set the label
  *      size { normal } // choose a predefined size
- *      checked { cheeseStore.data } // link a [Flow<Boolean>] in order to visualize the checked state
+ *      checked(cheeseStore.data) // link a [Flow<Boolean>] in order to visualize the checked state
  *      events { // open inner context with all DOM-element events
  *          changes.states() handledBy cheeseStore.update // connect the changes event with the state store
+ *      }
+ *      element {
+ *          // exposes the underlying HTML button element for direct access. Use with caution!
  *      }
  * }
  * ```
  */
 @ComponentMarker
-class CheckboxComponent : ElementProperties<Input> by Element(), InputFormProperties by InputForm() {
+class CheckboxComponent :
+    EventProperties<HTMLInputElement> by Event(),
+    ElementProperties<Input> by Element(),
+    InputFormProperties by InputForm() {
+
     companion object {
         val checkboxInputStaticCss = staticStyle(
             "checkbox",
@@ -92,7 +100,6 @@ class CheckboxComponent : ElementProperties<Input> by Element(), InputFormProper
         label = value
     }
 
-    var events = ComponentProperty<WithEvents<HTMLInputElement>.() -> Unit> {}
     var checked = DynamicComponentProperty(flowOf(false))
 
     var labelStyle: Style<BasicParams> = { Theme().checkbox.label() }
@@ -120,7 +127,7 @@ class CheckboxComponent : ElementProperties<Input> by Element(), InputFormProper
  * checkbox {
  *      label("with extra cheese") // set the label
  *      size { normal } // choose a predefined size
- *      checked { cheeseStore.data } // link a [Flow<Boolean>] in order to visualize the checked state
+ *      checked(cheeseStore.data) // link a [Flow<Boolean>] in order to visualize the checked state
  *      events { // open inner context with all DOM-element events
  *          changes.states() handledBy cheeseStore.update // connect the changes event with the state store
  *      }
