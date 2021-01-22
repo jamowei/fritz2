@@ -1,5 +1,6 @@
 package dev.fritz2.components
 
+import dev.fritz2.binding.RootStore
 import dev.fritz2.dom.WithEvents
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -72,4 +73,15 @@ class InputForm : InputFormProperties, Form() {
 
 interface TextInputFormProperties : InputFormProperties {
     // TODO Some further properties are equal between input type=text and textarea; could be worth to centralize!
+}
+
+class MultiSelectionStore<T> : RootStore<List<T>>(emptyList()) {
+    val toggle = handleAndEmit<T, List<T>> { selectedRows, new ->
+        val newSelection = if (selectedRows.contains(new))
+            selectedRows - new
+        else
+            selectedRows + new
+        emit(newSelection)
+        newSelection
+    }
 }

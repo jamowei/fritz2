@@ -2,7 +2,6 @@ package dev.fritz2.components
 
 import dev.fritz2.binding.RootStore
 import dev.fritz2.binding.Store
-import dev.fritz2.binding.watch
 import dev.fritz2.dom.html.RenderContext
 import dev.fritz2.dom.states
 import dev.fritz2.identification.uniqueId
@@ -76,10 +75,9 @@ class CheckboxGroupComponent<T> : InputFormProperties by InputForm() {
         }
     }
 
-    var items = DynamicComponentProperty<List<T>>(flowOf(emptyList()))
-    var icon = ComponentProperty<Icons.() -> IconDefinition> { Theme().icons.check }
-    var label = ComponentProperty<(item: T) -> String> { it.toString() }
-    var size = ComponentProperty<CheckboxSizes.() -> Style<BasicParams>> { Theme().checkbox.sizes.normal }
+    val icon = ComponentProperty<Icons.() -> IconDefinition> { Theme().icons.check }
+    val label = ComponentProperty<(item: T) -> String> { it.toString() }
+    val size = ComponentProperty<CheckboxSizes.() -> Style<BasicParams>> { Theme().checkbox.sizes.normal }
 
     var direction: Style<BasicParams> = CheckboxGroupLayouts.column
     fun direction(value: CheckboxGroupLayouts.() -> Style<BasicParams>) {
@@ -101,31 +99,12 @@ class CheckboxGroupComponent<T> : InputFormProperties by InputForm() {
         checkedStyle = value()
     }
 
-    // TODO
-    var selectedItems: Flow<List<T>> = flowOf(emptyList())
-
-    val selectionStore: SelectionStore<T> = SelectionStore()
+    val selectedItems = DynamicComponentProperty<List<T>>(flowOf(emptyList()))
 
     class EventsContext<T>(val selected: Flow<List<T>>) {
     }
 
-    var eventsExpression: EventsContext<T>.() -> Unit = {}
-    fun events(expr: EventsContext<T>.() -> Unit) {
-        eventsExpression = expr
-    }
-
-}
-
-// TODO
-class SelectionStore<T> : RootStore<List<T>>(emptyList()) {
-    val toggle = handleAndEmit<T, List<T>> { selectedRows, new ->
-        val newSelection = if (selectedRows.contains(new))
-            selectedRows - new
-        else
-            selectedRows + new
-        emit(newSelection)
-        newSelection
-    }
+    val events = ComponentProperty<EventsContext<T>.() -> Unit> {}
 }
 
 /**
@@ -170,38 +149,24 @@ class SelectionStore<T> : RootStore<List<T>>(emptyList()) {
  */
 fun <T> RenderContext.checkboxGroup(
     styling: BasicParams.() -> Unit = {},
-    store: Store<List<T>>,
+    items: List<T>,
+    store: Store<List<T>>? = null,
     baseClass: StyleClass? = null,
     id: String? = null,
     prefix: String = "checkboxGroupComponent",
     build: CheckboxGroupComponent<T>.() -> Unit = {}
 ) {
     val component = CheckboxGroupComponent<T>().apply(build)
-
-    val toggle = store.handle<T> { list, item ->
-        if (list.contains(item)) {
-            list - item
-        } else {
-            list + item
-        }
-    }
-
+    val multiSelectionStore: MultiSelectionStore<T> = MultiSelectionStore()
 
     val grpId = id ?: uniqueId()
     (::div.styled(styling, baseClass, id, prefix) {
         component.direction()
     }) {
-        //component.selectionStore.update(store.current)
-        //store?.let { it.data.watch() }
-        //component.selectedItems.watch()
-        //component.selectionStore.data.watch()
-        //component.selectionStore.data.onEach { println(it) }
-        //component.selectedItems handledBy component.selectionStore.update
-        //component.selectionStore.syncBy(store.update)
+        (store?.data ?: component.selectedItems.values) handledBy multiSelectionStore.update
 
-
-        component.items.values.renderEach { item ->
-            val checkedFlow = store.data.map { it.contains(item) }.distinctUntilChanged()
+        items.forEach { item ->
+            val checkedFlow = multiSelectionStore.data.map { it.contains(item) }.distinctUntilChanged()
             checkbox(styling = component.itemStyle, id = grpId + "-grp-item-" + uniqueId()) {
                 size { component.size.value.invoke(Theme().checkbox.sizes) }
                 icon { component.icon.value(Theme().icons) }
@@ -211,19 +176,15 @@ fun <T> RenderContext.checkboxGroup(
                 checked(checkedFlow)
                 disabled(component.disabled.values)
                 events {
-                    changes.states().map { item } handledBy toggle
-                    //changes.states().map { item } handledBy component.selectionStore.toggle
+                    changes.states().map { item } handledBy multiSelectionStore.toggle
                 }
             }
         }
 
-        /*
-        CheckboxGroupComponent.EventsContext(component.selectionStore.toggle).apply {
-            component.eventsExpression(this)
+        CheckboxGroupComponent.EventsContext(multiSelectionStore.toggle).apply {
+            component.events.value(this)
             store?.let { selected handledBy it.update }
         }
-
-         */
     }
 }
 

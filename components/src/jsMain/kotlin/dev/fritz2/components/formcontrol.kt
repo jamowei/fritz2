@@ -224,7 +224,7 @@ open class FormControlComponent {
         control.set(ControlNames.textArea)
         {
             textArea(styling, store, baseClass, id, prefix) {
-                base {
+                element {
                     className(StyleClass(invalidClassName).whenever(msg))
                     init()
                 }
@@ -257,6 +257,7 @@ open class FormControlComponent {
 
     open fun <T>checkboxGroup(
         styling: BasicParams.() -> Unit = {},
+        items: List<String>,
         store: Store<List<T>>,
         baseClass: StyleClass? = null,
         id: String? = null,
@@ -264,7 +265,7 @@ open class FormControlComponent {
         build: CheckboxGroupComponent<T>.() -> Unit
     ) {
         control.set(ControlNames.checkboxGroup) {
-            checkboxGroup(styling, store, baseClass, id, prefix) {
+            checkboxGroup(styling, items, store, baseClass, id, prefix) {
                 build()
             }
         }
