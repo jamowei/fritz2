@@ -51,7 +51,7 @@ import kotlinx.coroutines.flow.*
  *   val myPairs = listOf((1 to "ffffff"), (2 to "rrrrrr" ), (3 to "iiiiii"), (4 to "tttttt"), ( 5 to "zzzzzz"), (6 to "222222"))
  *  val myStore = storeOf(<List<Pair<Int,String>>)
  * checkboxGroup(store = myStore) {
- *      label(it.second)
+ *      label { it.second }
  *      size { large }
  *      items(flowOf(options)) or use items(options) // provide a list of items you can
  *      checkedStyle {{
@@ -150,7 +150,7 @@ class SelectionStore<T> : RootStore<List<T>>(emptyList()) {
  * val myPairs = listOf((1 to "ffffff"), (2 to "rrrrrr" ), (3 to "iiiiii"), (4 to "tttttt"), ( 5 to "zzzzzz"), (6 to "222222"))
  * val myStore = storeOf(<List<Pair<Int,String>>)
  * checkboxGroup(store = myStore) {
- *      label(it.second)
+ *      label { it.second }
  *      size { large }
  *      items(flowOf(options)) or use items(options) // provide a list of items you can
  *      checkedStyle {{

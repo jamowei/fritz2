@@ -136,6 +136,9 @@ open class InputFieldComponent :
  *     events {
  *         changes.values() handledBy someStore.update // connect an handler for emitting the user input made
  *     }
+ *     element {
+ *         // exposes the underlying HTML input element for direct access. Use with caution!
+ *     }
  * }
  *
  * // apply predefined size and variant

@@ -1,18 +1,18 @@
 package dev.fritz2.components
 
+import dev.fritz2.binding.Store
 import dev.fritz2.dom.WithEvents
 import dev.fritz2.dom.html.Div
 import dev.fritz2.dom.html.Input
 import dev.fritz2.dom.html.Label
 import dev.fritz2.dom.html.RenderContext
+import dev.fritz2.dom.states
 import dev.fritz2.styling.StyleClass
 import dev.fritz2.styling.params.BasicParams
 import dev.fritz2.styling.params.Style
 import dev.fritz2.styling.params.styled
 import dev.fritz2.styling.staticStyle
-import dev.fritz2.styling.theme.IconDefinition
-import dev.fritz2.styling.theme.RadioSizes
-import dev.fritz2.styling.theme.Theme
+import dev.fritz2.styling.theme.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -42,15 +42,21 @@ import org.w3c.dom.HTMLInputElement
  * radio {
  *      label("with extra cheese") // set the label
  *      size { normal } // choose a predefined size
- *      selected { cheeseStore.data } // link a [Flow<Boolean>] in order to visualize the checked state
+ *      selected(cheeseStore.data) // link a [Flow<Boolean>] in order to visualize the checked state
  *      events { // open inner context with all DOM-element events
  *          changes.states() handledBy cheeseStore.update // connect the changes event with the state store
+ *      }
+ *      element {
+ *          // exposes the underlying HTML input element for direct access. Use with caution!
  *      }
  * }
  * ```
  */
 @ComponentMarker
-class RadioComponent : ElementProperties<Input> by Element(), InputFormProperties by InputForm() {
+class RadioComponent :
+    EventProperties<HTMLInputElement> by Event(),
+    ElementProperties<Input> by Element(),
+    InputFormProperties by InputForm() {
     companion object {
         val radioInputStaticCss = staticStyle(
             "radioInput",
@@ -98,15 +104,7 @@ class RadioComponent : ElementProperties<Input> by Element(), InputFormPropertie
         )
     }
 
-    var size: RadioSizes.() -> Style<BasicParams> = { Theme().radio.sizes.normal }
-    fun size(value: RadioSizes.() -> Style<BasicParams>) {
-        size = value
-    }
-
-    var icon: IconDefinition? = null
-    fun icon(value: () -> IconDefinition) {
-        icon = value()
-    }
+    var size = ComponentProperty<RadioSizes.() -> Style<BasicParams>> { Theme().radio.sizes.normal }
 
     var label: (Div.() -> Unit)? = null
     fun label(value: String) {
@@ -135,26 +133,8 @@ class RadioComponent : ElementProperties<Input> by Element(), InputFormPropertie
         selectedStyle = value()
     }
 
-    var events: (WithEvents<HTMLInputElement>.() -> Unit)? = null // @input
-    fun events(value: WithEvents<HTMLInputElement>.() -> Unit) {
-        events = value
-    }
-
-    var selected: Flow<Boolean> = flowOf(false) // @input
-    fun selected(value: () -> Flow<Boolean>) {
-        selected = value()
-    }
-
-    var groupName: Flow<String> = flowOf("")
-    fun groupName(value: () -> String) {
-        groupName = flowOf(value())
-    }
-
-    fun groupName(value: () -> Flow<String>) {
-        groupName = value()
-    }
-
-
+    var selected = DynamicComponentProperty(flowOf(false))
+    var groupName = DynamicComponentProperty(flowOf(""))
 }
 
 
@@ -172,7 +152,7 @@ class RadioComponent : ElementProperties<Input> by Element(), InputFormPropertie
  * radio {
  *      label("with extra cheese") // set the label
  *      size { normal } // choose a predefined size
- *      selected { cheeseStore.data } // link a [Flow<Boolean>] in order to visualize the checked state
+ *      selected(cheeseStore.data) // link a [Flow<Boolean>] in order to visualize the checked state
  *      events { // open inner context with all DOM-element events
  *          changes.states() handledBy cheeseStore.update // connect the changes event with the state store
  *      }
@@ -189,6 +169,7 @@ class RadioComponent : ElementProperties<Input> by Element(), InputFormPropertie
  */
 fun RenderContext.radio(
     styling: BasicParams.() -> Unit = {},
+    store: Store<Boolean>? = null,
     baseClass: StyleClass? = null,
     id: String? = null,
     prefix: String = "radioComponent",
@@ -197,7 +178,7 @@ fun RenderContext.radio(
     val component = RadioComponent().apply(build)
     val inputId = id?.let { "$it-input" }
     val alternativeGroupname = id?.let { "$it-groupName" }
-    val inputName = component.groupName.map {
+    val inputName = component.groupName.values.map {
         if (it.isEmpty()) {
             alternativeGroupname ?: ""
         } else {
@@ -210,7 +191,7 @@ fun RenderContext.radio(
         id = id,
         prefix = prefix
     ) {
-        component.size.invoke(Theme().radio.sizes)()
+        component.size.value.invoke(Theme().radio.sizes)()
     }) {
         inputId?.let {
             `for`(inputId)
@@ -230,9 +211,10 @@ fun RenderContext.radio(
             readOnly(component.readonly.values)
             type("radio")
             name(inputName)
-            checked(component.selected)
+            checked(store?.data ?: component.selected.values)
             value("X")
-            component.events?.invoke(this)
+            component.events.value.invoke(this)
+            store?.let { changes.states() handledBy it.update }
         }
 
         (::div.styled() {

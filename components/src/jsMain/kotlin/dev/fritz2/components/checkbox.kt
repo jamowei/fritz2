@@ -1,11 +1,14 @@
 package dev.fritz2.components
 
+import dev.fritz2.binding.Store
 import dev.fritz2.components.CheckboxComponent.Companion.checkboxInputStaticCss
 import dev.fritz2.dom.WithEvents
 import dev.fritz2.dom.html.Div
 import dev.fritz2.dom.html.Input
 import dev.fritz2.dom.html.Label
 import dev.fritz2.dom.html.RenderContext
+import dev.fritz2.dom.states
+import dev.fritz2.dom.values
 import dev.fritz2.styling.StyleClass
 import dev.fritz2.styling.params.BasicParams
 import dev.fritz2.styling.params.Style
@@ -50,7 +53,7 @@ import org.w3c.dom.HTMLTextAreaElement
  *          changes.states() handledBy cheeseStore.update // connect the changes event with the state store
  *      }
  *      element {
- *          // exposes the underlying HTML button element for direct access. Use with caution!
+ *          // exposes the underlying HTML input element for direct access. Use with caution!
  *      }
  * }
  * ```
@@ -144,6 +147,7 @@ class CheckboxComponent :
  */
 fun RenderContext.checkbox(
     styling: BasicParams.() -> Unit = {},
+    store: Store<Boolean>? = null,
     baseClass: StyleClass? = null,
     id: String? = null,
     prefix: String = "checkboxComponent",
@@ -176,8 +180,9 @@ fun RenderContext.checkbox(
             disabled(component.disabled.values)
             readOnly(component.readonly.values)
             type("checkbox")
-            checked(component.checked.values)
+            checked(store?.data ?: component.checked.values)
             component.events.value.invoke(this)
+            store?.let { changes.states() handledBy it.update }
         }
 
         (::div.styled() {
