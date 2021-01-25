@@ -192,7 +192,7 @@ fun RenderContext.checkbox(
             icon({
                 Theme().checkbox.icon()
             }
-            ) { def = component.icon.value(Theme().icons) }
+            ) { def(component.icon.value(Theme().icons)) }
         }
 
         component.label?.let {

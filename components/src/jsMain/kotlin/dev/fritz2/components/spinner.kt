@@ -143,7 +143,7 @@ fun RenderContext.spinner(
             )
             styling()
         }, baseClass, id, prefix) {
-            def = component.icon
+            def(component.icon)
         }
     }
 }
