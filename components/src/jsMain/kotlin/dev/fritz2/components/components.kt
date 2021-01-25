@@ -1,7 +1,13 @@
 package dev.fritz2.components
 
 import dev.fritz2.binding.RootStore
+import dev.fritz2.binding.SimpleHandler
 import dev.fritz2.dom.WithEvents
+import dev.fritz2.dom.html.RenderContext
+import dev.fritz2.styling.StyleClass
+import dev.fritz2.styling.params.BasicParams
+import dev.fritz2.styling.params.Style
+import dev.fritz2.styling.theme.Theme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -34,7 +40,7 @@ interface EventProperties<T : Element> {
     var events: ComponentProperty<WithEvents<T>.() -> Unit>
 }
 
-class Event<T: Element> : EventProperties<T> {
+class Event<T : Element> : EventProperties<T> {
     override var events: ComponentProperty<WithEvents<T>.() -> Unit> = ComponentProperty {}
 }
 
@@ -83,5 +89,49 @@ class MultiSelectionStore<T> : RootStore<List<T>>(emptyList()) {
             selectedRows + new
         emit(newSelection)
         newSelection
+    }
+}
+
+interface CloseButtonProperty {
+    val prefix: String
+    val hasCloseButton: ComponentProperty<Boolean>
+    val closeButton: ComponentProperty<(RenderContext.(SimpleHandler<Unit>) -> Unit)?>
+    val closeButtonStyle: Style<BasicParams>
+
+    fun closeButton(
+        styling: BasicParams.() -> Unit = {},
+        baseClass: StyleClass? = null,
+        id: String? = null,
+        prefix: String = this.prefix,
+        build: PushButtonComponent.() -> Unit = {}
+    )
+}
+
+class CloseButton(
+    override val closeButtonStyle: Style<BasicParams>,
+    override val prefix: String = "close-button"
+) : CloseButtonProperty {
+
+    override val hasCloseButton = ComponentProperty(true)
+
+    override var closeButton = ComponentProperty<(RenderContext.(SimpleHandler<Unit>) -> Unit)?>(null)
+
+    override fun closeButton(
+        styling: BasicParams.() -> Unit,
+        baseClass: StyleClass?,
+        id: String?,
+        prefix: String,
+        build: PushButtonComponent.() -> Unit
+    ) {
+        closeButton { closeHandle ->
+            clickButton({
+                closeButtonStyle()
+                styling()
+            }, baseClass, id, prefix) {
+                variant { ghost }
+                icon { fromTheme { close } }
+                build()
+            }.map { } handledBy closeHandle
+        }
     }
 }
