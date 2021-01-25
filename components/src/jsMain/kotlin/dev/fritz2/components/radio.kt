@@ -86,22 +86,6 @@ class RadioComponent :
             }
             """
         )
-
-        val radioLabelStaticCss = staticStyle(
-            "radiolabel",
-            """
-            display: block;
-            position: relative;
-            &::before {
-                content: '';
-                outline: none;
-                position: relative;
-                display: inline-block;
-                vertical-align: middle;
-                box-shadow: 0 0 1px ${Theme().colors.dark} inset;
-            }
-            """
-        )
     }
 
     var size = ComponentProperty<RadioSizes.() -> Style<BasicParams>> { Theme().radio.sizes.normal }
